@@ -5,12 +5,13 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "start": "node ."
+    "start": "node src/index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "caxa": "^2.1.0",
     "chalk": "^5.0.1",
     "execa": "^6.1.0",
     "figlet": "^1.5.2",

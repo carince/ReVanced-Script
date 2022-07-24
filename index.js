@@ -80,7 +80,12 @@ async function main() {
                 return
             }
 
-            const { stdout } = await execa('curl', ['-s', 'https://api.github.com/repos/revanced/revanced-cli/releases/latest'])
+            const { stdout } = await execa('curl', ['-s', 'https://api.github.com/repos/revanced/revanced-cli/releases/latest']).catch(err => 
+                {
+                    console.log(chalk.bold.red(`Error occured while executing command`))
+                    throw new Error(err)
+                }
+            )
             const json = JSON.parse(stdout)
             const version = json[`tag_name`].substring(1)
 
@@ -91,6 +96,11 @@ async function main() {
                 ],
                 {
                     cwd: filesDir
+                }
+            ).catch(err => 
+                {
+                    console.log(chalk.bold.red(`Error occured while executing command`))
+                    throw new Error(err)
                 }
             )
 
@@ -106,7 +116,12 @@ async function main() {
                 return
             }
 
-            const { stdout } = await execa('curl', ['-s', 'https://api.github.com/repos/revanced/revanced-patches/releases/latest'])
+            const { stdout } = await execa('curl', ['-s', 'https://api.github.com/repos/revanced/revanced-patches/releases/latest']).catch(err => 
+                {
+                    console.log(chalk.bold.red(`Error occured while executing command`))
+                    throw new Error(err)
+                }
+            )
             const json = JSON.parse(stdout)
             const version = json[`tag_name`].substring(1)
 
@@ -117,6 +132,11 @@ async function main() {
                 ],
                 {
                     cwd: filesDir
+                }
+            ).catch(err => 
+                {
+                    console.log(chalk.bold.red(`Error occured while executing command`))
+                    throw new Error(err)
                 }
             )
 
@@ -140,6 +160,11 @@ async function main() {
                 {
                     cwd: filesDir
                 }
+            ).catch(err => 
+                {
+                    console.log(chalk.bold.red(`Error occured while executing command`))
+                    throw new Error(err)
+                }
             )
 
             spinner.succeed(chalk.greenBright(`Integrations successfully downloaded...`))
@@ -153,18 +178,23 @@ async function main() {
                 {
                     type: `input`,
                     name: `ytApk`,
-                    message: `What is your YouTube apk filename?\n  ${chalk.italic(`(file must be in the 'rvs-files' directory.)`)}\n  rvs-files: file://${filesDir}`,
+                    message: `What is your YouTube apk filename?\n  rvs-files: ${filesDir}\n  ${chalk.italic(`(file must be in the 'rvs-files' directory and must have no spaces in its name)`)}`,
                     default: `yt.apk`,
                     validate: function (input) {
                         const done = this.async();
                         async function checkFile() {
+                            if(/\s/g.test(input)){
+                                done(chalk.yellowBright(`⚠ File must have no spaces in its name, please rename your apk file.`))
+                                return
+                            }
+                            
                             if (!existsSync(join(filesDir, input))) {
                                 done(chalk.yellowBright(`⚠ File does not exist, please double check your spelling.`))
                                 return
-                            } else {
-                                ytName = input
-                                done(null, true)
                             }
+
+                            ytName = input
+                            done(null, true)
                         } checkFile();
                     }
                 }
@@ -175,6 +205,11 @@ async function main() {
             const { stdout } = await execaCommand(`java -jar cli.jar -a ${ytName} -c -l -o revanced.apk -b patches.jar -m integ.apk`,
                 {
                     cwd: filesDir
+                }
+            ).catch(err => 
+                {
+                    console.log(chalk.bold.red(`Error occured while executing command`))
+                    throw new Error(err)
                 }
             )
 
@@ -243,4 +278,29 @@ async function main() {
             )
         } await apkName()
     } await configure()
+
+    async function build() {
+        console.log(chalk.yellowBright(`⚠ Starting build with ${patchArr.length} patches...`))
+
+        let patchString = ``
+        for(let patch in patchArr){
+            patchString = patchString += `-i ${patchArr[patch]} `
+        }
+
+        const command = execaCommand(`java -jar cli.jar -a ${ytName} -c -o ${rvName}.apk -b patches.jar -m integ.apk --exclusive ${patchString}`,
+            {
+                cwd: filesDir
+            }
+        )
+        command.stdout.pipe(process.stdout) 
+        const {stdout} = await command
+        console.log(stdout)
+
+        console.log(chalk.bold.greenBright(`✔ Successfully built ReVanced apk.`))
+        console.log(chalk.greenBright(`You should be able to see your APK inside of the 'rvs-files' directory with the name you have given it.`))
+        console.log(chalk.greenBright(`Either you can install it through adb or pass the apk file onto your phone and install it directly.`))
+
+        console.log(`Support the development of this script by giving the repository a star: https://github.com/Norikiru/ReVanced-Script`)
+        console.log(`Script made by Norikiru, based on CnC-Robert's bash script: https://github.com/CnC-Robert/revanced-cli-script`)
+    } await build()
 } main();
